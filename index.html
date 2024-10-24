@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.4.1/jspdf.debug.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <title>Interaktive Kreise</title>
+  <style>
+    /* Einfache CSS-Formatierung für das Canvas und die Buttons */
+    body {
+      text-align: center;
+    }
+    button {
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+  <canvas style="background-image: url(./Fussballfeld.png);" id="myCanvas" width="635" height="515" willReadFrequently="true"></canvas>
+  <button onclick="addPlayer()">Spieler hinzufügen</button>
+  <button onclick="addOpponent()">Gegner hinzufügen</button>
+  <button onclick="saveAsPDF()">Als PDF speichern</button>
+
+  <script>
+    // Hole das Canvas-Element und seinen 2D-Rendering-Kontext
+    const canvas = document.getElementById('myCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Definiere Farben und Radius für die Kreise
+    const playerColor = 'blue';
+    const opponentColor = 'red';
+    const circleRadius = 10;
+
+    // Array zum Speichern aller Kreisobjekte
+    let circles = [];
+
+    // Klasse für ein Kreisobjekt mit x- und y-Koordinaten, Farbe und einem Flag für das Ziehen
+    function Circle(x, y, color) {
+      this.x = x;
+      this.y = y;
+      this.color = color;
+      this.dragging = false;
+    }
+
+    // Funktion zum Zeichnen aller Kreise auf dem Canvas
+    function draw() {
+      // Lösche den gesamten Canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Zeichne jeden Kreis im Array
+      circles.forEach(circle => {
+        ctx.beginPath();
+        ctx.arc(circle.x, circle.y, circleRadius, 0, Math.PI * 2);
+        ctx.fillStyle = circle.color;
+        ctx.fill();
+        ctx.closePath();
+      });
+    }
+
+    // Funktion zum Hinzufügen eines neuen Spielers (blauer Kreis)
+    function addPlayer() {
+      const newCircle = new Circle(100, 150, playerColor);
+      circles.push(newCircle);
+      draw(); // Zeichne alle Kreise neu
+    }
+
+    // Funktion zum Hinzufügen eines neuen Gegners (roter Kreis)
+    function addOpponent() {
+      const newCircle = new Circle(300, 150, opponentColor);
+      circles.push(newCircle);
+      draw();
+    }
+
+    // Funktion zum Speichern des Canvas-Inhalts als PDF
+    function saveAsPDF() {
+      html2canvas(canvas).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+
+        try {
+          // Erstelle ein neues PDF-Dokument und füge das Bild hinzu
+          const pdf = new jsPDF();
+          pdf.addImage(imgData, 'PNG', 0, 0);
+          pdf.save('meinDokument.pdf');
+        } catch (error) {
+          console.error('Fehler beim Erstellen des PDF-Dokuments:', error);
+        }
+      });
+    }
+
+    // Event-Listener für Mausereignisse auf dem Canvas
+    canvas.addEventListener('mousedown', (event) => {
+      // Berechne die Mausposition relativ zum Canvas
+      const mouseX = event.clientX - canvas.offsetLeft;
+      const mouseY = event.clientY - canvas.offsetTop;
+
+      // Überprüfe für jeden Kreis, ob die Maus innerhalb liegt
+      circles.forEach(circle => {
+        if (isInsideCircle(circle, mouseX, mouseY)) {
+          circle.dragging = true; // Setze das Zieh-Flag
+        }
+      });
+    });
+
+    canvas.addEventListener('mousemove', (event) => {
+      const mouseX = event.clientX - canvas.offsetLeft;
+      const mouseY = event.clientY - canvas.offsetTop;
+
+      // Bewege alle gezogenen Kreise mit der Maus
+      circles.forEach(circle => {
+        if (circle.dragging) {
+          circle.x = mouseX;
+          circle.y = mouseY;
+        }
+      });
+      draw(); // Zeichne alle Kreise neu
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      // Setze das Zieh-Flag für alle Kreise zurück
+      circles.forEach(circle => {
+        circle.dragging = false;
+      });
+    });
+
+    // Funktion zur Überprüfung, ob ein Punkt innerhalb eines Kreises liegt
+    function isInsideCircle(circle, mouseX, mouseY) {
+      const dx = mouseX - circle.x;
+      const dy = mouseY - circle.y;
+      return Math.sqrt(dx * dx + dy * dy) <= circleRadius;
+    }
+
+    // Zeichne alle Kreise in regelmäßigen Abständen neu
+    setInterval(draw, 10);
+  </script>
+</body>
+</html>
